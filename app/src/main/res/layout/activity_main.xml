@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.anand.loktratask.views.activities.MainActivity"
+    >
+    <Button
+        android:id="@+id/btnLocationTrack"
+        android:layout_width="match_parent"
+        android:layout_height="45dp"
+        android:textAllCaps="false"
+        android:text="Location Tracking"
+        />
+    <Button
+        android:id="@+id/btnRepoCommits"
+        android:layout_width="match_parent"
+        android:layout_height="45dp"
+        android:textAllCaps="false"
+        android:text="Rails Repo Commits"
+        />
+</LinearLayout>
