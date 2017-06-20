@@ -5,6 +5,7 @@ import android.app.Application;
 import com.anand.loktratask.dagger.components.AppComponent;
 import com.anand.loktratask.dagger.components.DaggerAppComponent;
 import com.anand.loktratask.dagger.modules.ApiModule;
+import com.anand.loktratask.dagger.modules.UtilModule;
 
 public class TaskApplication extends Application {
 
@@ -17,6 +18,7 @@ public class TaskApplication extends Application {
         //Build dagger components
         appComponent = DaggerAppComponent.builder()
                 .apiModule(new ApiModule())
+                .utilModule(new UtilModule())
                 .build();
     }
 
