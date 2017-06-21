@@ -1,9 +1,12 @@
 package com.anand.loktratask.views.activities;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -15,6 +18,7 @@ import android.util.Log;
 import com.anand.loktratask.R;
 import com.anand.loktratask.dagger.TaskApplication;
 import com.anand.loktratask.utils.AlertDialogUtils;
+import com.anand.loktratask.utils.PermissionCheck;
 import com.anand.loktratask.views.presenters.MapPresenter;
 import com.anand.loktratask.views.screen_contracts.AlertDialogAction;
 import com.anand.loktratask.views.screen_contracts.MapScreen;
@@ -38,12 +42,13 @@ public class MapRoutingActivity extends GoogleApiClientActivity
         MapScreen,
         PermissionResponse,
         OnMapReadyCallback,
-        AlertDialogAction {
+        AlertDialogAction,
+        LocationListener {
 
-    private static final int ALERT_REQUEST_PERMISSIONS_RATIONALLY = 777;
-    private static final int ALERT_REQUEST_OPEN_APP_SETTINGS = 666;
-    private static final int REQUEST_PERMISSIONS = 999;
-    private static final int REQUEST_PERMISSION_LOCATION = 888;
+    private static final int REQUEST_PERMISSIONS = 9;
+    private static final int ALERT_REQUEST_PERMISSIONS_RATIONALLY = 8;
+    private static final int ALERT_REQUEST_OPEN_APP_SETTINGS = 7;
+    private static final int ALERT_REQUEST_ENABLE_GPS = 6;
     private GoogleMap googleMap;
     private Location location;
     private static Double latitude;
@@ -52,19 +57,23 @@ public class MapRoutingActivity extends GoogleApiClientActivity
     @Inject
     MapPresenter mapPresenter;
 
+    @Inject
+    PermissionCheck permissionCheck;
+
     @BindView(R.id.slideView)
     SlideView _slideView;
 
-    @BindString(R.string.alert_header_we_need_this_permission) String alert_header_we_need_this_permission;
+    @BindString(R.string.alert_header_use_gps) String alert_header_use_gps;
     @BindString(R.string.alert_header_open_app_settings) String alert_header_open_app_settings;
-    @BindString(R.string.alert_header_delete_file) String alert_header_delete_file;
-    @BindString(R.string.alert_message_file_deletion) String alert_message_file_deletion;
     @BindString(R.string.alert_message_permission_rationally) String alert_message_permission_rationally;
     @BindString(R.string.alert_message_permission_denied) String alert_message_permission_denied;
+    @BindString(R.string.alert_header_enable_gps) String alert_header_enable_gps;
+    @BindString(R.string.alert_message_enable_gps) String alert_message_enable_gps;
     @BindString(R.string.btn_yes) String btn_yes;
     @BindString(R.string.btn_no) String btn_no;
-    @BindString(R.string.btn_delete) String btn_delete;
-    @BindString(R.string.btn_cancel) String btn_cancel;
+    @BindString(R.string.btn_allow) String btn_allow;
+    @BindString(R.string.btn_deny) String btn_deny;
+    @BindString(R.string.btn_enable) String btn_enable;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -73,12 +82,9 @@ public class MapRoutingActivity extends GoogleApiClientActivity
 
         ((TaskApplication) getApplication()).getAppComponent().inject(this);
         ButterKnife.bind(this);
-    }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
         createGoogleMap();
+
     }
 
     //Create google map and set onCreate listener for the map
@@ -107,13 +113,19 @@ public class MapRoutingActivity extends GoogleApiClientActivity
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        int permissionCheck = PackageManager.PERMISSION_GRANTED;
+        int permissionGranted = PackageManager.PERMISSION_GRANTED;
         for (int permission : grantResults) {
-            permissionCheck = permissionCheck + permission;
+            permissionGranted = permissionGranted + permission;
         }
-        if ((grantResults.length > 0) && permissionCheck == PackageManager.PERMISSION_GRANTED) {
+        if ((grantResults.length > 0) && permissionGranted == PackageManager.PERMISSION_GRANTED) {
+            permissionGranted(REQUEST_PERMISSIONS);
             Log.e("Result", "Granted");
         } else {
+            if (permissionCheck.shouldAskRational(this, android.Manifest.permission.ACCESS_FINE_LOCATION)) {
+                askRationalPermission();
+            } else {
+                askPermissionDisabled();
+            }
             Log.e("Result", "Denied");
         }
     }
@@ -121,16 +133,33 @@ public class MapRoutingActivity extends GoogleApiClientActivity
     @SuppressLint("MissingPermission")
     @Override
     public void permissionGranted(int requestCode) {
-        location = LocationServices.FusedLocationApi.getLastLocation(getGoogleApiClient());
-        //Get user current location and set  up the map
-        if (location != null) {
-            latitude = location.getLatitude();
-            longitude = location.getLongitude();
-            //Set up the google map with the respective attributes
-            setGoogleMap();
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+
+        //Check if GPS is enabled
+        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            buildAlertMessageNoGps();
         } else {
-            Log.e("Location", "null");
+            location = LocationServices.FusedLocationApi.getLastLocation(getGoogleApiClient());
+            //Get user current location and set  up the map
+            if (location != null) {
+                latitude = location.getLatitude();
+                longitude = location.getLongitude();
+                //Set up the google map with the respective attributes
+                setGoogleMap();
+            } else {
+                Log.e("Location", "null");
+            }
         }
+    }
+
+    private void buildAlertMessageNoGps() {
+        AlertDialogUtils.showDialog(
+                this,
+                alert_header_enable_gps,
+                alert_message_enable_gps,
+                btn_enable,
+                btn_no,
+                ALERT_REQUEST_ENABLE_GPS);
     }
 
     @Override
@@ -148,10 +177,10 @@ public class MapRoutingActivity extends GoogleApiClientActivity
     public void askRationalPermission() {
         AlertDialogUtils.showDialog(
                 this,
-                alert_header_we_need_this_permission,
+                alert_header_use_gps,
                 alert_message_permission_rationally,
-                btn_yes,
-                btn_no,
+                btn_allow,
+                btn_deny,
                 ALERT_REQUEST_PERMISSIONS_RATIONALLY);
     }
 
@@ -175,6 +204,10 @@ public class MapRoutingActivity extends GoogleApiClientActivity
             case ALERT_REQUEST_OPEN_APP_SETTINGS:
                 opeAppSettings();
                 break;
+            case ALERT_REQUEST_ENABLE_GPS:
+                startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                finish();
+                break;
         }
     }
 
@@ -193,6 +226,7 @@ public class MapRoutingActivity extends GoogleApiClientActivity
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
         startActivity(intent);
+        finish();
     }
 
     //Set the map depending on the location attributes
@@ -227,7 +261,28 @@ public class MapRoutingActivity extends GoogleApiClientActivity
 
     }
 
+    @SuppressWarnings("unused")
     private LatLng getLatLang() {
         return new LatLng(location.getLatitude(), longitude);
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        permissionGranted(REQUEST_PERMISSIONS);
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+        permissionGranted(REQUEST_PERMISSIONS);
     }
 }

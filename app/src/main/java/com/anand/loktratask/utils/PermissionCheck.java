@@ -15,7 +15,7 @@ public class PermissionCheck {
         Log.e("MapRoute", "Checking permission");
 
         //Check if permission granted
-        if (isPermissionGranted(activity, requestedPermissions) == PackageManager.PERMISSION_DENIED) {
+        if (isPermissionGranted(activity, requestedPermissions) != PackageManager.PERMISSION_GRANTED) {
             //Check if rational request needed
             if (shouldAskRational(activity, requestedPermissions)) {
                 //Make rational request
@@ -41,7 +41,7 @@ public class PermissionCheck {
         return ContextCompat.checkSelfPermission(activity, permission);
     }
 
-    private Boolean shouldAskRational(Activity activity, String requestedPermissions) {
+    public Boolean shouldAskRational(Activity activity, String requestedPermissions) {
         return ActivityCompat.shouldShowRequestPermissionRationale(activity, requestedPermissions);
     }
 }
