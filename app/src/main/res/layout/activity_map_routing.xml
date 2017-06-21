@@ -13,15 +13,31 @@
         android:name="com.google.android.gms.maps.SupportMapFragment"
         />
     <ng.max.slideview.SlideView
-        android:id="@+id/slideView"
+        android:id="@+id/slideViewStart"
         android:layout_width="match_parent"
         android:layout_height="45dp"
         app:buttonBackgroundColor="@android:color/transparent"
-        app:buttonImage="@mipmap/ic_launcher_round"
-        app:slideBackgroundColor="@android:color/black"
+        app:buttonImage="@drawable/ic_action_arrow"
+        app:slideBackgroundColor="@color/colorAccent"
         app:slideText="@string/slide_text"
         app:slideTextColor="@android:color/white"
         android:layout_alignParentBottom="true"
         android:layout_margin="20dp"
+        android:visibility="visible"
         />
+    <ng.max.slideview.SlideView
+        android:id="@+id/slideViewStop"
+        android:layout_width="match_parent"
+        android:layout_height="45dp"
+        app:buttonBackgroundColor="@android:color/transparent"
+        app:buttonImage="@drawable/ic_action_arrow"
+        app:slideBackgroundColor="@color/colorAccent"
+        app:slideText="@string/slide_text_stop"
+        app:slideTextColor="@android:color/white"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="20dp"
+        android:visibility="gone"
+        app:reverseSlide="true"
+        />
+
 </RelativeLayout>

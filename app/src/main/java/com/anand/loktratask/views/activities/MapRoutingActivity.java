@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -14,6 +15,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.view.View;
 
 import com.anand.loktratask.R;
 import com.anand.loktratask.dagger.TaskApplication;
@@ -23,12 +25,16 @@ import com.anand.loktratask.views.presenters.MapPresenter;
 import com.anand.loktratask.views.screen_contracts.AlertDialogAction;
 import com.anand.loktratask.views.screen_contracts.MapScreen;
 import com.anand.loktratask.views.screen_contracts.PermissionResponse;
+import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.PolylineOptions;
+
+import java.util.ArrayList;
 
 import javax.inject.Inject;
 
@@ -50,9 +56,15 @@ public class MapRoutingActivity extends GoogleApiClientActivity
     private static final int ALERT_REQUEST_OPEN_APP_SETTINGS = 7;
     private static final int ALERT_REQUEST_ENABLE_GPS = 6;
     private GoogleMap googleMap;
-    private Location location;
     private static Double latitude;
     private static Double longitude;
+    private static final long INTERVAL = 1000 * 60 * 1; //1 minute
+    private static final long FASTEST_INTERVAL = 1000 * 60 * 1; // 1 minute
+    private static final float SMALLEST_DISPLACEMENT = 0.25F; //quarter of a meter
+    private LocationManager locationManager;
+    private LocationListener locationListener;
+    private ArrayList<LatLng> latLngArrayList;
+    private Boolean isTrackingStarted = false;
 
     @Inject
     MapPresenter mapPresenter;
@@ -60,8 +72,10 @@ public class MapRoutingActivity extends GoogleApiClientActivity
     @Inject
     PermissionCheck permissionCheck;
 
-    @BindView(R.id.slideView)
+    @BindView(R.id.slideViewStart)
     SlideView _slideView;
+    @BindView(R.id.slideViewStop)
+    SlideView _slideViewStop;
 
     @BindString(R.string.alert_header_use_gps) String alert_header_use_gps;
     @BindString(R.string.alert_header_open_app_settings) String alert_header_open_app_settings;
@@ -85,6 +99,36 @@ public class MapRoutingActivity extends GoogleApiClientActivity
 
         createGoogleMap();
 
+        // Acquire a reference to the system Location Manager
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+
+        latLngArrayList = new ArrayList<>();
+
+        //Set up slide view
+        _slideView.setOnSlideCompleteListener(new SlideView.OnSlideCompleteListener() {
+            @Override
+            public void onSlideComplete(SlideView slideView) {
+                if (locationManager.isProviderEnabled( LocationManager.GPS_PROVIDER)) {
+                    _slideViewStop.setVisibility(View.VISIBLE);
+                    _slideView.setVisibility(View.GONE);
+                    isTrackingStarted = true;
+                    startLocationUpdates();
+                } else {
+                    permissionGranted(REQUEST_PERMISSIONS);
+                }
+            }
+        });
+
+        _slideViewStop.setOnSlideCompleteListener(new SlideView.OnSlideCompleteListener() {
+            @Override
+            public void onSlideComplete(SlideView slideView) {
+                if (isTrackingStarted) {
+                    _slideView.setVisibility(View.GONE);
+                    _slideView.setVisibility(View.VISIBLE);
+                    stopLocationUpdates();
+                }
+            }
+        });
     }
 
     //Create google map and set onCreate listener for the map
@@ -133,13 +177,12 @@ public class MapRoutingActivity extends GoogleApiClientActivity
     @SuppressLint("MissingPermission")
     @Override
     public void permissionGranted(int requestCode) {
-        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
 
         //Check if GPS is enabled
-        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+        if ( !locationManager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
             buildAlertMessageNoGps();
         } else {
-            location = LocationServices.FusedLocationApi.getLastLocation(getGoogleApiClient());
+            Location location = LocationServices.FusedLocationApi.getLastLocation(getGoogleApiClient());
             //Get user current location and set  up the map
             if (location != null) {
                 latitude = location.getLatitude();
@@ -262,8 +305,34 @@ public class MapRoutingActivity extends GoogleApiClientActivity
     }
 
     @SuppressWarnings("unused")
-    private LatLng getLatLang() {
-        return new LatLng(location.getLatitude(), longitude);
+    private LatLng getLatLang(Location location) {
+        return new LatLng(location.getLatitude(), location.getLongitude());
+    }
+
+    private LocationRequest createLocationRequest() {
+        return new LocationRequest()
+        .setInterval(INTERVAL)
+        .setFastestInterval(FASTEST_INTERVAL)
+        .setSmallestDisplacement(SMALLEST_DISPLACEMENT) //added
+        .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    @SuppressLint("MissingPermission")
+    private void startLocationUpdates() {
+        locationListener = new LocationListener();
+        LocationServices.FusedLocationApi.requestLocationUpdates(getGoogleApiClient(), createLocationRequest(), locationListener);
+    }
+
+    class LocationListener implements com.google.android.gms.location.LocationListener {
+        @Override
+        public void onLocationChanged(Location location) {
+            latLngArrayList.add(getLatLang(location));
+            redrawLine();
+        }
+    }
+
+    private void stopLocationUpdates() {
+        LocationServices.FusedLocationApi.removeLocationUpdates(getGoogleApiClient(), locationListener);
     }
 
     @Override
@@ -284,5 +353,17 @@ public class MapRoutingActivity extends GoogleApiClientActivity
     @Override
     public void onProviderDisabled(String provider) {
         permissionGranted(REQUEST_PERMISSIONS);
+    }
+
+    private void redrawLine(){
+        if (googleMap == null)
+            return;
+        googleMap.clear();  //clears everything on google map
+        PolylineOptions options = new PolylineOptions().width(5).color(Color.BLUE).geodesic(true);
+        for (int i = 0; i < latLngArrayList.size(); i++) {
+            LatLng point = latLngArrayList.get(i);
+            options.add(point);
+        }
+        googleMap.addPolyline(options); //add Polyline
     }
 }

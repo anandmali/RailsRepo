@@ -4,7 +4,8 @@
     <string name="list_sample">Show Posts</string>
     <string name="launching_posts_activity">Launching Posts Activity..</string>
     <string name="error">Error! Check your network connection!</string>
-    <string name="slide_text">Start</string>
+    <string name="slide_text">Slide To Start</string>
+    <string name="slide_text_stop">Slide To Stop</string>
 
     <!--Alert dialogs-->
     <string name="alert_header_use_gps">Use GPS</string>
