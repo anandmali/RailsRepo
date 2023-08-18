@@ -6,6 +6,18 @@ espresso-core = "3.5.1"
 appcompat = "1.6.1"
 material = "1.9.0"
 constraintlayout = "2.1.4"
+google-services = "11.0.0"
+recycler = "25.4.0"
+retrofit = "2.1.0"
+okhttp-loggin = "3.3.0"
+dagger = "2.10"
+dagger-annotation = "2.10"
+butterknife = "8.6.0"
+sliding-button = "1.0.0"
+rx-android = "1.2.1"
+rx-java = "1.1.6"
+event-bus = "3.0.0"
+apache-lang = "3.1"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -14,6 +26,22 @@ espresso-core = { group = "androidx.test.espresso", name = "espresso-core", vers
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+recycler-view = { group = "com.android.support", name = "recyclerview-v7", version.ref = "recycler" }
+play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "google-services" }
+play-services-maps = { group = "com.google.android.gms", name = "play-services-location", version.ref = "google-services" }
+retrofit2 = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+convertor-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+adapter-rxjava2 = { group = "com.squareup.retrofit2", name = "logging-interceptor", version.ref = "retrofit" }
+okhttp-loggin = { group = "com.squareup.okhttp3", name = "adapter-rxjava", version.ref = "okhttp-loggin" }
+dagger2 = { group = "com.google.dagger", name = "dagger", version.ref = "dagger" }
+annotationProcessor = { group = "com.google.dagger", name = "dagger-compiler", version.ref = "dagger-annotation" }
+butter-knife = { group = "com.jakewharton", name = "butterknife", version.ref = "butterknife" }
+annotationProcessor = { group = "com.jakewharton", name = "butterknife-compiler", version.ref = "butterknife" }
+slidingButton = { group = "com.github.MAXDeliveryNG", name = "slideview", version.ref = "sliding-button" }
+rxandroid = { group = "io.reactivex", name = "rxandroid", version.ref = "rx-android" }
+rxjava = { group = "io.reactivex", name = "rxjava", version.ref = "rx-java" }
+rxjava = { group = "org.greenrobot", name = "eventbus", version.ref = "event-bus" }
+rxjava = { group = "org.apache.commons", name = "commons-lang3", version.ref = "apache-lang" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
